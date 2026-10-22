@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Webcam Italia</title>
+  <meta name="theme-color" content="#1d6fe0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Cerca località…" autocomplete="off" enterkeyhint="search">
+      <ul id="results" hidden></ul>
+    </div>
+    <button id="btn-fav" class="icon-btn" aria-label="Preferiti">⭐</button>
+    <button id="btn-locate" class="icon-btn" aria-label="Vicino a me">📍</button>
+  </header>
+  <div id="banner" hidden></div>
+  <main>
+    <div id="map"></div>
+    <section id="list" aria-live="polite"></section>
+  </main>
+  <section id="detail" hidden></section>
+  <div id="keybox" hidden>
+    <form id="keyform">
+      <h2>Chiave Windy</h2>
+      <p>Serve per vedere le immagini delle webcam Windy. È gratuita: creala su
+        <a href="https://api.windy.com/keys" target="_blank" rel="noopener">api.windy.com/keys</a>
+        (piano Free, "Webcams API") e incollala qui. Resta solo su questo telefono.</p>
+      <input id="keyinput" type="text" placeholder="Incolla la chiave" autocomplete="off">
+      <div class="actions">
+        <button type="button" class="btn" id="keycancel">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
