@@ -1,0 +1,15 @@
+{
+  "name": "Webcam Italia",
+  "short_name": "Webcam",
+  "description": "Webcam pubbliche in Italia con meteo, vento, onde e pioggia",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "it",
+  "theme_color": "#1d6fe0",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
