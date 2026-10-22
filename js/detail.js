@@ -1,7 +1,7 @@
 // Pannello di dettaglio di una webcam.
 
 import { escapeHtml } from './list.js';
-import { fmtTemp, fmtWind, fmtWave, fmtRain, dirName } from './format.js';
+import { fmtTemp, fmtWind, fmtWave, fmtRain, dirName, fmtUpdated } from './format.js';
 
 function conditionsHtml(cond) {
   if (!cond) return '<p class="muted">Meteo non disponibile al momento.</p>';
@@ -37,7 +37,8 @@ export function openDetail(el, cam, cond, { isFav, onToggleFav, onImageError, on
     <div class="detail-head">
       <button class="icon-btn" data-act="close" aria-label="Chiudi">✕</button>
       <div class="detail-title"><h2>${escapeHtml(cam.name)}</h2>
-        ${cam.place ? `<div class="muted">${escapeHtml(cam.place)}</div>` : ''}</div>
+        ${cam.place ? `<div class="muted">${escapeHtml(cam.place)}</div>` : ''}
+        ${fmtUpdated(cam.updated) ? `<div class="muted">${escapeHtml(fmtUpdated(cam.updated))}</div>` : ''}</div>
       <button class="icon-btn fav" data-act="fav" aria-label="Preferito">${isFav ? '★' : '☆'}</button>
     </div>
     <div class="media">${media}</div>

@@ -4,6 +4,7 @@
 const FORECAST = 'https://api.open-meteo.com/v1/forecast';
 const MARINE = 'https://marine-api.open-meteo.com/v1/marine';
 const TTL = 10 * 60 * 1000;
+const TIMEOUT_MS = 8000;
 const cache = new Map(); // pointKey -> { at, value }
 
 export const pointKey = (p) => `${p.lat.toFixed(2)},${p.lon.toFixed(2)}`;
@@ -12,7 +13,7 @@ const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const asArray = (d) => (Array.isArray(d) ? d : [d]);
 
 async function getJson(fetch, url) {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error('Open-Meteo HTTP ' + res.status);
   return res.json();
 }

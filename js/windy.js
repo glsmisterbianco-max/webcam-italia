@@ -7,9 +7,13 @@ const PAGE = 50;
 
 export class WindyAuthError extends Error {}
 
+const TIMEOUT_MS = 8000;
+const httpUrl = (v) => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
+
 export function normalizeWindy(w) {
   const loc = w?.location || {};
   if (typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') return null;
+  if (w.status && w.status !== 'active') return null;
   const img = w.images?.current || {};
   return {
     id: 'windy:' + w.webcamId,
@@ -18,15 +22,19 @@ export function normalizeWindy(w) {
     place: [loc.city, loc.region].filter(Boolean).join(', '),
     lat: loc.latitude,
     lon: loc.longitude,
-    thumb: img.thumbnail || null,
-    preview: img.preview || null,
-    player: w.player?.day ?? w.player?.lifetime ?? null,
-    page: w.urls?.detail ?? null,
+    thumb: httpUrl(img.thumbnail),
+    preview: httpUrl(img.preview),
+    player: httpUrl(w.player?.day) ?? httpUrl(w.player?.lifetime),
+    page: httpUrl(w.urls?.detail),
+    updated: w.lastUpdatedOn || null,
   };
 }
 
 async function get(url, key, fetch) {
-  const res = await fetch(url, { headers: { 'x-windy-api-key': key } });
+  const res = await fetch(url, {
+    headers: { 'x-windy-api-key': key },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
   if (res.status === 401 || res.status === 403) throw new WindyAuthError('Chiave Windy non valida');
   if (!res.ok) throw new Error('Windy HTTP ' + res.status);
   return res.json();
