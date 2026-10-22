@@ -1,0 +1,11 @@
+{
+  "name": "webcam-italia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "build:osm": "node scripts/build-osm.mjs",
+    "serve": "npx --yes serve public -l 5173"
+  }
+}
