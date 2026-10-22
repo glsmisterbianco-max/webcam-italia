@@ -1,0 +1,19 @@
+{
+  "total": 2,
+  "webcams": [
+    {
+      "webcamId": 1234,
+      "title": "Mondello: Spiaggia",
+      "status": "active",
+      "location": { "city": "Mondello", "region": "Sicilia", "latitude": 38.2, "longitude": 13.32 },
+      "images": { "current": { "thumbnail": "https://img/t.jpg", "preview": "https://img/p.jpg" } },
+      "player": { "day": "https://player/day", "lifetime": "https://player/life" },
+      "urls": { "detail": "https://www.windy.com/webcams/1234" }
+    },
+    {
+      "webcamId": 999,
+      "title": "Senza coordinate",
+      "location": { "city": "X", "longitude": 13 }
+    }
+  ]
+}
