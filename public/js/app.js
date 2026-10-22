@@ -19,15 +19,17 @@ export function windyNumericId(id) {
   return m ? Number(m[1]) : null;
 }
 
-export async function loadView(bounds, center, { key, fetch, osmCams, maxWindy = MAX_WINDY }) {
+export async function loadView(bounds, center, { key, fetch, osmCams, maxWindy = MAX_WINDY, roadOnly = false }) {
   let windy = { cams: [], total: 0 };
   let windyError = null;
   try {
-    windy = await fetchWindyInBounds(bounds, { key, fetch, max: maxWindy });
+    windy = await fetchWindyInBounds(bounds, { key, fetch, max: maxWindy, roadOnly });
   } catch (e) {
     windyError = e instanceof WindyAuthError ? 'auth' : 'net';
   }
-  const cams = sortByDistance(dedupe([...windy.cams, ...osmInBounds(osmCams, bounds)]), center);
+  // OSM non distingue le webcam stradali: in modalità strade restano fuori.
+  const osm = roadOnly ? [] : osmInBounds(osmCams, bounds);
+  const cams = sortByDistance(dedupe([...windy.cams, ...osm]), center);
   return { cams, total: windy.total, windyError };
 }
 
@@ -64,6 +66,7 @@ async function init() {
   const banner = $('#banner');
 
   let mode = 'area'; // 'area' | 'fav'
+  let roadOnly = false; // solo webcam di strade e autostrade
   let userPos = null;
   let seq = 0;
   let current = []; // cam visibili nella lista
@@ -137,14 +140,14 @@ async function init() {
     const center = map.getCenter();
     const key = settings.getWindyKey();
     const near = userPos && inBounds(userPos, bounds) ? userPos : center;
-    if (key) {
+    if (key && !roadOnly) {
       // Le webcam OSM sono già in memoria: si mostrano subito, Windy arriva dopo.
       current = sortByDistance(osmInBounds(osmCams, bounds), near);
       map.setCams(current);
       render('Caricamento webcam…');
     }
     const r = await loadView(bounds, near, {
-      key, fetch, osmCams,
+      key, fetch, osmCams, roadOnly,
     });
     if (mySeq !== seq) return;
     current = r.cams;
@@ -157,6 +160,11 @@ async function init() {
       header = `Vicino a te · ${current.length} webcam`;
     } else {
       header = `In questa zona · ${current.length} webcam`;
+    }
+    if (roadOnly) {
+      header = key
+        ? `Strade e autostrade · ${current.length} webcam`
+        : 'Strade e autostrade: serve la chiave Windy (tocca la striscia gialla)';
     }
     if (r.windyError === 'net') header += ' · Windy non raggiungibile';
     lastRefresh = Date.now();
@@ -220,6 +228,17 @@ async function init() {
     render(header);
     loadConditions(seq, header);
   }
+  $('#btn-road').addEventListener('click', () => {
+    roadOnly = !roadOnly;
+    $('#btn-road').classList.toggle('active', roadOnly);
+    if (mode === 'fav') {
+      mode = 'area';
+      $('#btn-fav').classList.remove('active');
+    }
+    // Le webcam stradali sono poche: si mostra tutta l'Italia.
+    if (roadOnly) map.fitItaly();
+    refresh();
+  });
   $('#btn-fav').addEventListener('click', () => {
     if (mode === 'fav') {
       mode = 'area';

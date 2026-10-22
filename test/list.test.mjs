@@ -42,3 +42,8 @@ test('osm row has live-on-site badge, windy row does not', () => {
   assert.ok(renderRowHtml(osm, cond, false).includes('Diretta sul sito'));
   assert.ok(!renderRowHtml(windy, cond, false).includes('Diretta sul sito'));
 });
+
+test('road webcam row has road badge', () => {
+  assert.ok(renderRowHtml({ ...windy, road: true }, cond, false).includes('Strada'));
+  assert.ok(!renderRowHtml(windy, cond, false).includes('Strada'));
+});

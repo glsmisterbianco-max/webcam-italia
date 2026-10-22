@@ -16,7 +16,12 @@ export function renderRowHtml(cam, cond, isFav) {
     ? `<img class="thumb" src="${escapeHtml(cam.thumb)}" alt="" loading="lazy">`
     : `<div class="thumb thumb-empty" aria-hidden="true">📷</div>`;
   const place = cam.place ? `<div class="row-place">${escapeHtml(cam.place)}</div>` : '';
-  const badge = cam.source === 'osm' ? ' <span class="badge-live">Diretta sul sito</span>' : '';
+  const badge =
+    cam.source === 'osm'
+      ? ' <span class="badge-live">Diretta sul sito</span>'
+      : cam.road
+        ? ' <span class="badge-road">Strada</span>'
+        : '';
   return (
     `<li class="row" data-id="${escapeHtml(cam.id)}" tabindex="0">${thumb}` +
     `<div class="row-text"><div class="row-name">${escapeHtml(cam.name)}` +

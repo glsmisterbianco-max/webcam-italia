@@ -22,7 +22,7 @@ test('normalizeWindy maps fields', () => {
     id: 'windy:1234', source: 'windy', name: 'Mondello: Spiaggia', place: 'Mondello, Sicilia',
     lat: 38.2, lon: 13.32, thumb: 'https://img/t.jpg', preview: 'https://img/p.jpg',
     player: 'https://player/day', page: 'https://www.windy.com/webcams/1234',
-    updated: '2026-10-22T13:29:16.000Z',
+    updated: '2026-10-22T13:29:16.000Z', road: false,
   });
 });
 
@@ -79,7 +79,7 @@ test('500 throws generic Error', async () => {
 test('fetchWindyById', async () => {
   const f = fakeFetch(() => ({ body: fixture.webcams[0] }));
   const cam = await fetchWindyById(1234, { key: 'K', fetch: f });
-  assert.ok(f.calls[0].url.includes('/webcams/1234?include=images,location,player,urls'), f.calls[0].url);
+  assert.ok(f.calls[0].url.includes('/webcams/1234?include=categories,images,location,player,urls'), f.calls[0].url);
   assert.equal(cam.id, 'windy:1234');
 });
 
@@ -98,4 +98,24 @@ test('requests carry an abort signal', async () => {
   const f = async (url, opts) => { seen.push(opts && opts.signal); return { ok: true, status: 200, json: async () => fixture }; };
   await fetchWindyInBounds(bounds, { key: 'K', fetch: f });
   assert.ok(seen[0] instanceof AbortSignal);
+});
+
+test('traffic category marks a road webcam', () => {
+  const c = normalizeWindy({ ...fixture.webcams[0], categories: [{ id: 'city' }, { id: 'traffic' }] });
+  assert.equal(c.road, true);
+});
+
+test('roadOnly asks Windy for the traffic category', async () => {
+  const f = fakeFetch(() => ({ body: fixture }));
+  await fetchWindyInBounds(bounds, { key: 'K', fetch: f, roadOnly: true });
+  assert.ok(f.calls[0].url.includes('categories=traffic'), f.calls[0].url);
+  const g = fakeFetch(() => ({ body: fixture }));
+  await fetchWindyInBounds(bounds, { key: 'K', fetch: g });
+  assert.ok(!g.calls[0].url.includes('categories='), g.calls[0].url);
+});
+
+test('bbox queries are limited to Italy, San Marino and Vatican', async () => {
+  const f = fakeFetch(() => ({ body: fixture }));
+  await fetchWindyInBounds(bounds, { key: 'K', fetch: f });
+  assert.ok(f.calls[0].url.includes('countries=IT,SM,VA'), f.calls[0].url);
 });

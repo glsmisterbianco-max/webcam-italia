@@ -68,3 +68,11 @@ test('windyNumericId', () => {
   assert.equal(windyNumericId('windy:1234'), 1234);
   assert.equal(windyNumericId('osm:node/1'), null);
 });
+
+test('loadView roadOnly skips OSM and filters Windy by traffic', async () => {
+  const urls = [];
+  const f = async (u) => { urls.push(String(u)); return okWindy(); };
+  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [nearOsm, farOsm], roadOnly: true });
+  assert.ok(urls[0].includes('categories=traffic'));
+  assert.ok(r.cams.every((c) => c.source === 'windy'));
+});
