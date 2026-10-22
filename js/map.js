@@ -2,7 +2,7 @@
 
 const ITALY = [[35.4, 6.6], [47.1, 18.6]];
 
-export function createMap(el, { onMoveEnd, onSelect }) {
+export function createMap(el, { onMoveEnd, onSelect, onToggleGroup }) {
   const L = window.L;
   const map = L.map(el, { zoomControl: false, attributionControl: true });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -30,14 +30,20 @@ export function createMap(el, { onMoveEnd, onSelect }) {
   map.addLayer(osmCluster);
   map.addLayer(roadCluster);
 
+  // Legenda a pulsanti: ogni voce accende o spegne il suo gruppo di webcam.
   const legend = L.control({ position: 'bottomleft' });
+  let legendEl;
   legend.onAdd = () => {
-    const div = L.DomUtil.create('div', 'legend');
-    div.innerHTML =
-      '<span><i class="dot dot-windy"></i>Foto nell’app</span>' +
-      '<span><i class="dot dot-osm"></i>Diretta sul sito</span>' +
-      '<span><i class="dot dot-road"></i>Strade</span>';
-    return div;
+    legendEl = L.DomUtil.create('div', 'legend');
+    legendEl.innerHTML =
+      '<button type="button" data-group="windy" aria-pressed="true"><i class="dot dot-windy"></i>Foto nell’app</button>' +
+      '<button type="button" data-group="osm" aria-pressed="true"><i class="dot dot-osm"></i>Diretta sul sito</button>' +
+      '<button type="button" data-group="road" aria-pressed="true"><i class="dot dot-road"></i>Strade</button>';
+    L.DomEvent.disableClickPropagation(legendEl);
+    legendEl.querySelectorAll('button').forEach((b) =>
+      b.addEventListener('click', () => onToggleGroup(b.dataset.group))
+    );
+    return legendEl;
   };
   legend.addTo(map);
   const markers = new Map();
@@ -87,6 +93,13 @@ export function createMap(el, { onMoveEnd, onSelect }) {
       const m = markers.get(id);
       const group = [windyCluster, osmCluster, roadCluster].find((c) => m && c.hasLayer(m));
       if (group) group.zoomToShowLayer(m, () => m.setRadius(12));
+    },
+    setGroups(groups) {
+      legendEl.querySelectorAll('button').forEach((b) => {
+        const on = !!groups[b.dataset.group];
+        b.classList.toggle('off', !on);
+        b.setAttribute('aria-pressed', String(on));
+      });
     },
     invalidate() {
       map.invalidateSize();
