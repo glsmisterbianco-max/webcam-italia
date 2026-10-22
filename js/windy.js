@@ -2,8 +2,9 @@
 // Le URL delle immagini scadono dopo pochi minuti: si chiedono al momento.
 
 const BASE = 'https://api.windy.com/webcams/api/v3/webcams';
-const INCLUDE = 'images,location,player,urls';
+const INCLUDE = 'categories,images,location,player,urls';
 const PAGE = 50;
+const COUNTRIES = 'IT,SM,VA'; // l'app è per l'Italia: niente webcam dei paesi vicini
 
 export class WindyAuthError extends Error {}
 
@@ -27,6 +28,7 @@ export function normalizeWindy(w) {
     player: httpUrl(w.player?.day) ?? httpUrl(w.player?.lifetime),
     page: httpUrl(w.urls?.detail),
     updated: w.lastUpdatedOn || null,
+    road: (w.categories || []).some((c) => c?.id === 'traffic'),
   };
 }
 
@@ -40,14 +42,16 @@ async function get(url, key, fetch) {
   return res.json();
 }
 
-export async function fetchWindyInBounds(bounds, { key, fetch, max = 200 }) {
+export async function fetchWindyInBounds(bounds, { key, fetch, max = 200, roadOnly = false }) {
   if (!key) return { cams: [], total: 0 };
   // Virgole non codificate: è il formato che l'API si aspetta.
   const bbox = [bounds.north, bounds.east, bounds.south, bounds.west].join(',');
   const cams = [];
   let total = 0;
   for (let offset = 0; offset < max; offset += PAGE) {
-    const url = `${BASE}?bbox=${bbox}&limit=${PAGE}&offset=${offset}&include=${INCLUDE}`;
+    const url =
+      `${BASE}?bbox=${bbox}&countries=${COUNTRIES}&limit=${PAGE}&offset=${offset}&include=${INCLUDE}` +
+      (roadOnly ? '&categories=traffic' : '');
     const data = await get(url, key, fetch);
     total = data.total ?? 0;
     for (const w of data.webcams || []) {

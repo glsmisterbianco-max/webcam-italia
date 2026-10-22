@@ -73,12 +73,19 @@ main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .cluster-osm div { background: #f07c00; color: #fff; font-weight: 700; }
 .legend {
   background: #fff; border-radius: 10px; padding: 6px 10px; box-shadow: 0 1px 5px #0003;
-  font-size: 13px; display: flex; gap: 12px;
+  font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: 70vw;
 }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #0002; display: inline-block; }
 .dot-windy { background: var(--blue); }
 .dot-osm { background: #f07c00; }
+.dot-road { background: #7b3fd1; }
+.cluster-road { background: rgba(123, 63, 209, 0.3); }
+.cluster-road div { background: #7b3fd1; color: #fff; font-weight: 700; }
+.badge-road {
+  display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 10px;
+  background: #7b3fd1; color: #fff; font-size: 12px; font-weight: 600; vertical-align: 2px;
+}
 .row-text { min-width: 0; }
 .row-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-place { color: var(--muted); font-size: 13px; }

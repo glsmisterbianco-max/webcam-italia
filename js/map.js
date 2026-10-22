@@ -25,15 +25,18 @@ export function createMap(el, { onMoveEnd, onSelect }) {
     });
   const windyCluster = clusterOf('cluster-windy');
   const osmCluster = clusterOf('cluster-osm');
+  const roadCluster = clusterOf('cluster-road');
   map.addLayer(windyCluster);
   map.addLayer(osmCluster);
+  map.addLayer(roadCluster);
 
   const legend = L.control({ position: 'bottomleft' });
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'legend');
     div.innerHTML =
       '<span><i class="dot dot-windy"></i>Foto nell’app</span>' +
-      '<span><i class="dot dot-osm"></i>Diretta sul sito</span>';
+      '<span><i class="dot dot-osm"></i>Diretta sul sito</span>' +
+      '<span><i class="dot dot-road"></i>Strade</span>';
     return div;
   };
   legend.addTo(map);
@@ -47,26 +50,24 @@ export function createMap(el, { onMoveEnd, onSelect }) {
 
   const api = {
     setCams(cams) {
-      windyCluster.clearLayers();
-      osmCluster.clearLayers();
+      const groups = { windy: [], osm: [], road: [] };
+      const look = {
+        windy: { radius: 8, fillColor: '#1d6fe0' },
+        osm: { radius: 10, fillColor: '#f07c00' },
+        road: { radius: 9, fillColor: '#7b3fd1' },
+      };
+      [windyCluster, osmCluster, roadCluster].forEach((c) => c.clearLayers());
       markers.clear();
-      const windy = [];
-      const osm = [];
       for (const cam of cams) {
-        const isOsm = cam.source === 'osm';
-        const m = L.circleMarker([cam.lat, cam.lon], {
-          radius: isOsm ? 10 : 8,
-          weight: 2,
-          color: '#ffffff',
-          fillColor: isOsm ? '#f07c00' : '#1d6fe0',
-          fillOpacity: 1,
-        });
+        const kind = cam.source === 'osm' ? 'osm' : cam.road ? 'road' : 'windy';
+        const m = L.circleMarker([cam.lat, cam.lon], { ...look[kind], weight: 2, color: '#ffffff', fillOpacity: 1 });
         m.on('click', () => onSelect(cam));
         markers.set(cam.id, m);
-        (isOsm ? osm : windy).push(m);
+        groups[kind].push(m);
       }
-      windyCluster.addLayers(windy);
-      osmCluster.addLayers(osm);
+      windyCluster.addLayers(groups.windy);
+      osmCluster.addLayers(groups.osm);
+      roadCluster.addLayers(groups.road);
     },
     flyTo(lat, lon, zoom = 12) {
       map.flyTo([lat, lon], zoom, { duration: 0.8 });
@@ -84,7 +85,8 @@ export function createMap(el, { onMoveEnd, onSelect }) {
     },
     highlight(id) {
       const m = markers.get(id);
-      if (m) (osmCluster.hasLayer(m) ? osmCluster : windyCluster).zoomToShowLayer(m, () => m.setRadius(12));
+      const group = [windyCluster, osmCluster, roadCluster].find((c) => m && c.hasLayer(m));
+      if (group) group.zoomToShowLayer(m, () => m.setRadius(12));
     },
     invalidate() {
       map.invalidateSize();
