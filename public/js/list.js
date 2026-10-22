@@ -30,6 +30,14 @@ export function renderList(el, rows, { onSelect, header }) {
     ? rows.map((r) => renderRowHtml(r.cam, r.cond, r.isFav)).join('')
     : '<li class="empty">Nessuna webcam in questa zona. Allontana la mappa.</li>';
   el.innerHTML = `<div class="list-header">${escapeHtml(header || '')}</div><ul>${body}</ul>`;
+  el.querySelectorAll('img.thumb').forEach((img) =>
+    img.addEventListener('error', () => {
+      const ph = document.createElement('div');
+      ph.className = 'thumb thumb-empty';
+      ph.textContent = '📷';
+      img.replaceWith(ph);
+    }, { once: true })
+  );
   const byId = new Map(rows.map((r) => [r.cam.id, r.cam]));
   el.querySelectorAll('.row').forEach((li) => {
     const pick = () => onSelect(byId.get(li.dataset.id));

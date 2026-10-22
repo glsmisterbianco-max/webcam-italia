@@ -7,7 +7,8 @@ export async function searchPlaces(q, { fetch }) {
   if (name.length < 2) return [];
   try {
     const res = await fetch(
-      `${URL_BASE}?name=${encodeURIComponent(name)}&count=6&language=it&countryCode=IT`
+      `${URL_BASE}?name=${encodeURIComponent(name)}&count=6&language=it&countryCode=IT`,
+      { signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return [];
     const data = await res.json();

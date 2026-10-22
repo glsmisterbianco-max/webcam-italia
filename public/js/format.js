@@ -33,3 +33,16 @@ export function rowSummary(c) {
   if (ok(c.rainPct)) parts.push(`pioggia ${fmtRain(c.rainPct)}`);
   return parts.join(' · ');
 }
+
+const HHMM = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+
+// Età dell'immagine: distingue una webcam viva da una ferma.
+export function fmtUpdated(iso, now = Date.now()) {
+  const t = Date.parse(iso || '');
+  if (!Number.isFinite(t)) return null;
+  const min = Math.max(0, Math.round((now - t) / 60000));
+  if (min < 60) return `Aggiornata ${min} min fa`;
+  if (min < 24 * 60) return `Aggiornata alle ${HHMM.format(t)}`;
+  const days = Math.floor(min / (24 * 60));
+  return `Ferma da ${days} ${days === 1 ? 'giorno' : 'giorni'}`;
+}

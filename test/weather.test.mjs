@@ -70,3 +70,11 @@ test('cache 10 minutes', async () => {
   await fetchConditions([pt], { fetch: f, now: () => t });
   assert.equal(f.calls.length, 4);
 });
+
+test('weather requests carry an abort signal', async () => {
+  const seen = [];
+  const f = async (url, opts) => { seen.push(opts && opts.signal); return { ok: true, status: 200, json: async () => (url.includes('marine') ? mar(1) : fc(10)) }; };
+  await fetchConditions([{ lat: 44.5, lon: 8.5 }], { fetch: f, now: () => 1 });
+  assert.equal(seen.length, 2);
+  assert.ok(seen.every((s) => s instanceof AbortSignal));
+});

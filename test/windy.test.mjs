@@ -22,6 +22,7 @@ test('normalizeWindy maps fields', () => {
     id: 'windy:1234', source: 'windy', name: 'Mondello: Spiaggia', place: 'Mondello, Sicilia',
     lat: 38.2, lon: 13.32, thumb: 'https://img/t.jpg', preview: 'https://img/p.jpg',
     player: 'https://player/day', page: 'https://www.windy.com/webcams/1234',
+    updated: '2026-10-22T13:29:16.000Z',
   });
 });
 
@@ -80,4 +81,21 @@ test('fetchWindyById', async () => {
   const cam = await fetchWindyById(1234, { key: 'K', fetch: f });
   assert.ok(f.calls[0].url.includes('/webcams/1234?include=images,location,player,urls'), f.calls[0].url);
   assert.equal(cam.id, 'windy:1234');
+});
+
+test('inactive webcam is skipped', () => {
+  assert.equal(normalizeWindy({ ...fixture.webcams[0], status: 'inactive' }), null);
+});
+
+test('non-http player and page are dropped', () => {
+  const c = normalizeWindy({ ...fixture.webcams[0], player: { day: 'javascript:alert(1)' }, urls: { detail: { x: 1 } } });
+  assert.equal(c.player, null);
+  assert.equal(c.page, null);
+});
+
+test('requests carry an abort signal', async () => {
+  const seen = [];
+  const f = async (url, opts) => { seen.push(opts && opts.signal); return { ok: true, status: 200, json: async () => fixture }; };
+  await fetchWindyInBounds(bounds, { key: 'K', fetch: f });
+  assert.ok(seen[0] instanceof AbortSignal);
 });

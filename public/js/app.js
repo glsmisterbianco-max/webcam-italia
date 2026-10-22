@@ -67,6 +67,7 @@ async function init() {
   let userPos = null;
   let seq = 0;
   let current = []; // cam visibili nella lista
+  let lastRefresh = 0;
   const conds = new Map(); // pointKey -> Conditions|null
 
   // --- banner e chiave ---------------------------------------------------
@@ -135,7 +136,14 @@ async function init() {
     const bounds = map.getBounds();
     const center = map.getCenter();
     const key = settings.getWindyKey();
-    const r = await loadView(bounds, userPos && inBounds(userPos, bounds) ? userPos : center, {
+    const near = userPos && inBounds(userPos, bounds) ? userPos : center;
+    if (key) {
+      // Le webcam OSM sono già in memoria: si mostrano subito, Windy arriva dopo.
+      current = sortByDistance(osmInBounds(osmCams, bounds), near);
+      map.setCams(current);
+      render('Caricamento webcam…');
+    }
+    const r = await loadView(bounds, near, {
       key, fetch, osmCams,
     });
     if (mySeq !== seq) return;
@@ -151,6 +159,7 @@ async function init() {
       header = `In questa zona · ${current.length} webcam`;
     }
     if (r.windyError === 'net') header += ' · Windy non raggiungibile';
+    lastRefresh = Date.now();
     updateKeyBanner(r.windyError);
     render(header);
     loadConditions(mySeq, header);
@@ -164,11 +173,8 @@ async function init() {
     if (wid && !cam.preview && key) {
       cam = (await fetchWindyById(wid, { key, fetch }).catch(() => null)) || cam;
     }
-    let cond = conds.get(pointKey(cam));
-    if (cond === undefined) {
-      cond = (await fetchConditions([cam], { fetch })).get(pointKey(cam)) ?? null;
-      conds.set(pointKey(cam), cond);
-    }
+    const cond = (await fetchConditions([cam], { fetch })).get(pointKey(cam)) ?? null;
+    conds.set(pointKey(cam), cond);
     openDetail(detailEl, cam, cond, {
       isFav: favorites.has(cam.id),
       onToggleFav: (c) => {
@@ -181,15 +187,26 @@ async function init() {
         const fresh = wid && key ? await fetchWindyById(wid, { key, fetch }).catch(() => null) : null;
         updateImage(detailEl, fresh?.preview || null);
       },
-      onClose: () => closeDetail(detailEl),
+      onClose: hideDetail,
     });
-    history.pushState({ detail: true }, '');
+    if (!history.state?.detail) history.pushState({ detail: true }, '');
+  }
+  function hideDetail() {
+    if (history.state?.detail) history.back(); // popstate chiude il pannello
+    else closeDetail(detailEl);
   }
   window.addEventListener('popstate', () => {
     if (!detailEl.hidden) closeDetail(detailEl);
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !detailEl.hidden) closeDetail(detailEl);
+    if (e.key === 'Escape' && !detailEl.hidden) hideDetail();
+  });
+
+  // Riaperta dopo un po': immagini Windy scadute e meteo vecchio, si ricarica.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastRefresh < 10 * 60 * 1000) return;
+    if (mode === 'fav') showFavorites();
+    else refresh();
   });
 
   // --- preferiti ----------------------------------------------------------

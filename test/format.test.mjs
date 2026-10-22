@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fmtTemp, fmtWind, fmtWave, fmtRain, rowSummary } from '../public/js/format.js';
+import { fmtTemp, fmtWind, fmtWave, fmtRain, rowSummary, fmtUpdated } from '../public/js/format.js';
 
 test('fmtWind', () => {
   assert.equal(fmtWind(12, 315), '12 km/h NO');
@@ -32,4 +32,13 @@ test('rowSummary inland has no waves and no null text', () => {
 
 test('rowSummary(null) is a dash', () => {
   assert.equal(rowSummary(null), '—');
+});
+
+test('fmtUpdated', () => {
+  const now = Date.parse('2026-10-22T13:40:00Z');
+  assert.equal(fmtUpdated('2026-10-22T13:29:16Z', now), 'Aggiornata 11 min fa');
+  assert.equal(fmtUpdated('2026-10-22T08:05:00Z', now), 'Aggiornata alle 10:05');
+  assert.equal(fmtUpdated('2026-10-19T08:00:00Z', now), 'Ferma da 3 giorni');
+  assert.equal(fmtUpdated(null, now), null);
+  assert.equal(fmtUpdated('boh', now), null);
 });
