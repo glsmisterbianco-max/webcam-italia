@@ -19,17 +19,30 @@ export function windyNumericId(id) {
   return m ? Number(m[1]) : null;
 }
 
-export async function loadView(bounds, center, { key, fetch, osmCams, maxWindy = MAX_WINDY, roadOnly = false }) {
+export const ALL_GROUPS = { windy: true, osm: true, road: true };
+
+// Accende o spegne un gruppo della legenda; almeno uno resta sempre acceso.
+export function toggleGroup(groups, name) {
+  const next = { ...groups, [name]: !groups[name] };
+  return Object.values(next).some(Boolean) ? next : groups;
+}
+
+// groups: windy = foto nell'app, osm = diretta sul sito, road = strade (Windy "traffic").
+export async function loadView(bounds, center, { key, fetch, osmCams, maxWindy = MAX_WINDY, groups = ALL_GROUPS }) {
   let windy = { cams: [], total: 0 };
   let windyError = null;
-  try {
-    windy = await fetchWindyInBounds(bounds, { key, fetch, max: maxWindy, roadOnly });
-  } catch (e) {
-    windyError = e instanceof WindyAuthError ? 'auth' : 'net';
+  if (groups.windy || groups.road) {
+    // Solo strade: si chiede a Windy la categoria traffico, così non si perdono nel limite di 200.
+    const roadOnly = !groups.windy;
+    try {
+      windy = await fetchWindyInBounds(bounds, { key, fetch, max: maxWindy, roadOnly });
+    } catch (e) {
+      windyError = e instanceof WindyAuthError ? 'auth' : 'net';
+    }
   }
-  // OSM non distingue le webcam stradali: in modalità strade restano fuori.
-  const osm = roadOnly ? [] : osmInBounds(osmCams, bounds);
-  const cams = sortByDistance(dedupe([...windy.cams, ...osm]), center);
+  const windyCams = groups.road ? windy.cams : windy.cams.filter((c) => !c.road);
+  const osm = groups.osm ? osmInBounds(osmCams, bounds) : [];
+  const cams = sortByDistance(dedupe([...windyCams, ...osm]), center);
   return { cams, total: windy.total, windyError };
 }
 
@@ -66,7 +79,13 @@ async function init() {
   const banner = $('#banner');
 
   let mode = 'area'; // 'area' | 'fav'
-  let roadOnly = false; // solo webcam di strade e autostrade
+  let groups = { ...ALL_GROUPS };
+  try {
+    const saved = JSON.parse(localStorage.getItem('wi.groups') || 'null');
+    if (saved && Object.values(saved).some(Boolean)) groups = { ...ALL_GROUPS, ...saved };
+  } catch {
+    // preferenza non leggibile: tutti i gruppi accesi
+  }
   let userPos = null;
   let seq = 0;
   let current = []; // cam visibili nella lista
@@ -131,7 +150,12 @@ async function init() {
 
   // --- vista mappa ----------------------------------------------------------
   const osmCams = await loadOsm({ fetch });
-  const map = createMap($('#map'), { onMoveEnd: () => refresh(), onSelect: showDetail });
+  const map = createMap($('#map'), {
+    onMoveEnd: () => refresh(),
+    onSelect: showDetail,
+    onToggleGroup: (name) => onToggleGroup(name),
+  });
+  map.setGroups(groups);
 
   async function refresh() {
     if (mode !== 'area') return;
@@ -140,14 +164,15 @@ async function init() {
     const center = map.getCenter();
     const key = settings.getWindyKey();
     const near = userPos && inBounds(userPos, bounds) ? userPos : center;
-    if (key && !roadOnly) {
+    if (key && groups.osm) {
       // Le webcam OSM sono già in memoria: si mostrano subito, Windy arriva dopo.
       current = sortByDistance(osmInBounds(osmCams, bounds), near);
+      // le webcam Windy arrivano subito dopo
       map.setCams(current);
       render('Caricamento webcam…');
     }
     const r = await loadView(bounds, near, {
-      key, fetch, osmCams, roadOnly,
+      key, fetch, osmCams, groups,
     });
     if (mySeq !== seq) return;
     current = r.cams;
@@ -161,11 +186,7 @@ async function init() {
     } else {
       header = `In questa zona · ${current.length} webcam`;
     }
-    if (roadOnly) {
-      header = key
-        ? `Strade e autostrade · ${current.length} webcam`
-        : 'Strade e autostrade: serve la chiave Windy (tocca la striscia gialla)';
-    }
+    if (!key && !groups.osm) header = 'Questi gruppi richiedono la chiave Windy (tocca la striscia gialla)';
     if (r.windyError === 'net') header += ' · Windy non raggiungibile';
     lastRefresh = Date.now();
     updateKeyBanner(r.windyError);
@@ -228,17 +249,20 @@ async function init() {
     render(header);
     loadConditions(seq, header);
   }
-  $('#btn-road').addEventListener('click', () => {
-    roadOnly = !roadOnly;
-    $('#btn-road').classList.toggle('active', roadOnly);
+  function onToggleGroup(name) {
+    groups = toggleGroup(groups, name);
+    map.setGroups(groups);
+    try {
+      localStorage.setItem('wi.groups', JSON.stringify(groups));
+    } catch {
+      // non salvata: vale per questa sessione
+    }
     if (mode === 'fav') {
       mode = 'area';
       $('#btn-fav').classList.remove('active');
     }
-    // Le webcam stradali sono poche: si mostra tutta l'Italia.
-    if (roadOnly) map.fitItaly();
     refresh();
-  });
+  }
   $('#btn-fav').addEventListener('click', () => {
     if (mode === 'fav') {
       mode = 'area';

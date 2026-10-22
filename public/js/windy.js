@@ -4,7 +4,6 @@
 const BASE = 'https://api.windy.com/webcams/api/v3/webcams';
 const INCLUDE = 'categories,images,location,player,urls';
 const PAGE = 50;
-const COUNTRIES = 'IT,SM,VA'; // l'app è per l'Italia: niente webcam dei paesi vicini
 
 export class WindyAuthError extends Error {}
 
@@ -50,7 +49,7 @@ export async function fetchWindyInBounds(bounds, { key, fetch, max = 200, roadOn
   let total = 0;
   for (let offset = 0; offset < max; offset += PAGE) {
     const url =
-      `${BASE}?bbox=${bbox}&countries=${COUNTRIES}&limit=${PAGE}&offset=${offset}&include=${INCLUDE}` +
+      `${BASE}?bbox=${bbox}&limit=${PAGE}&offset=${offset}&include=${INCLUDE}` +
       (roadOnly ? '&categories=traffic' : '');
     const data = await get(url, key, fetch);
     total = data.total ?? 0;

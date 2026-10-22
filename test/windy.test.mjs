@@ -114,8 +114,8 @@ test('roadOnly asks Windy for the traffic category', async () => {
   assert.ok(!g.calls[0].url.includes('categories='), g.calls[0].url);
 });
 
-test('bbox queries are limited to Italy, San Marino and Vatican', async () => {
+test('bbox queries are not limited by country', async () => {
   const f = fakeFetch(() => ({ body: fixture }));
   await fetchWindyInBounds(bounds, { key: 'K', fetch: f });
-  assert.ok(f.calls[0].url.includes('countries=IT,SM,VA'), f.calls[0].url);
+  assert.ok(!f.calls[0].url.includes('countries='), f.calls[0].url);
 });

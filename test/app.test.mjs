@@ -1,7 +1,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { loadView, locate, windyNumericId } from '../public/js/app.js';
+import { loadView, locate, windyNumericId, toggleGroup } from '../public/js/app.js';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/windy-list.json', import.meta.url)));
 // Windy fixture cam is at 38.2, 13.32
@@ -69,10 +69,45 @@ test('windyNumericId', () => {
   assert.equal(windyNumericId('osm:node/1'), null);
 });
 
-test('loadView roadOnly skips OSM and filters Windy by traffic', async () => {
+const roadCam = { ...fixture.webcams[0], webcamId: 77, categories: [{ id: 'traffic' }] };
+const mixed = { total: 2, webcams: [fixture.webcams[0], roadCam] };
+function recFetch(body) {
   const urls = [];
-  const f = async (u) => { urls.push(String(u)); return okWindy(); };
-  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [nearOsm, farOsm], roadOnly: true });
-  assert.ok(urls[0].includes('categories=traffic'));
-  assert.ok(r.cams.every((c) => c.source === 'windy'));
+  const f = async (u) => { urls.push(String(u)); return { ok: true, status: 200, json: async () => body }; };
+  f.urls = urls;
+  return f;
+}
+const all = { windy: true, osm: true, road: true };
+
+test('groups: all on shows windy, road and osm', async () => {
+  const f = recFetch(mixed);
+  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [farOsm], groups: all });
+  assert.deepEqual(r.cams.map(c => c.id).sort(), ['osm:node/2', 'windy:1234', 'windy:77']);
+  assert.ok(!f.urls[0].includes('categories='));
+});
+
+test('groups: only road asks Windy for traffic and skips OSM', async () => {
+  const f = recFetch({ total: 1, webcams: [roadCam] });
+  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [farOsm], groups: { windy: false, osm: false, road: true } });
+  assert.ok(f.urls[0].includes('categories=traffic'));
+  assert.deepEqual(r.cams.map(c => c.id), ['windy:77']);
+});
+
+test('groups: windy without road drops road webcams', async () => {
+  const f = recFetch(mixed);
+  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [farOsm], groups: { windy: true, osm: false, road: false } });
+  assert.deepEqual(r.cams.map(c => c.id), ['windy:1234']);
+});
+
+test('groups: only osm makes no Windy call', async () => {
+  const f = recFetch(mixed);
+  const r = await loadView(bounds, { lat: 38, lon: 13 }, { key: 'K', fetch: f, osmCams: [farOsm], groups: { windy: false, osm: true, road: false } });
+  assert.equal(f.urls.length, 0);
+  assert.deepEqual(r.cams.map(c => c.id), ['osm:node/2']);
+});
+
+test('toggleGroup keeps at least one group on', () => {
+  assert.deepEqual(toggleGroup(all, 'osm'), { windy: true, osm: false, road: true });
+  const one = { windy: false, osm: true, road: false };
+  assert.deepEqual(toggleGroup(one, 'osm'), one);
 });
