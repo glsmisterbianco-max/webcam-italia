@@ -37,3 +37,8 @@ test('favorite star', () => {
   assert.ok(renderRowHtml(osm, cond, true).includes('★'));
   assert.ok(!renderRowHtml(osm, cond, false).includes('★'));
 });
+
+test('osm row has live-on-site badge, windy row does not', () => {
+  assert.ok(renderRowHtml(osm, cond, false).includes('Diretta sul sito'));
+  assert.ok(!renderRowHtml(windy, cond, false).includes('Diretta sul sito'));
+});
