@@ -1,7 +1,7 @@
 // Service worker: tiene in cache solo l'app. Windy, Open-Meteo e le mappe
 // vanno sempre in rete (le immagini Windy scadono e non si salvano).
 
-const CACHE = 'wi-v2';
+const CACHE = 'wi-v3';
 const SHELL = [
   './',
   'index.html',
