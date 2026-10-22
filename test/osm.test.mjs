@@ -46,3 +46,9 @@ test('loadOsm returns [] on error', async () => {
   const cams = await loadOsm({ fetch: async () => { throw new Error('offline'); }, url: 'x-fail.json' });
   assert.deepEqual(cams, []);
 });
+
+test('loadOsm fills empty place with page host', async () => {
+  const data = [{ id: 'osm:node/9', source: 'osm', name: 'Webcam', place: '', lat: 1, lon: 1, page: 'https://www.comune.example.it/webcam' }];
+  const cams = await loadOsm({ fetch: async () => ({ ok: true, json: async () => data }), url: 'x-host.json' });
+  assert.equal(cams[0].place, 'comune.example.it');
+});
